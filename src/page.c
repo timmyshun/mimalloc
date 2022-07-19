@@ -763,6 +763,34 @@ void mi_register_deferred_free(mi_deferred_free_fun* fn, void* arg) mi_attr_noex
   mi_atomic_store_ptr_release(void,&deferred_arg, arg);
 }
 
+static mi_malloc_callback_fun* volatile malloc_callback = NULL;
+void mi_register_malloc_callback(mi_malloc_callback_fun* fn) mi_attr_noexcept{
+  malloc_callback = fn;
+}
+
+void _mi_malloc_callback(void* ptr, size_t size){
+  if (malloc_callback != NULL){
+    mi_heap_t* heap = mi_get_default_heap();
+    if (!heap->tld->recurse) {
+      heap->tld->recurse = true;
+      malloc_callback(ptr, size);
+      heap->tld->recurse = false;
+    }
+  }
+}
+
+static mi_free_callback_fun* volatile free_callback = NULL;
+void mi_register_free_callback(mi_free_callback_fun* fn) mi_attr_noexcept {
+  free_callback = fn;
+}
+
+void _mi_free_callback(void* ptr){
+  if (free_callback != NULL){
+      free_callback(ptr);
+  }
+}
+
+
 
 /* -----------------------------------------------------------
   General allocation

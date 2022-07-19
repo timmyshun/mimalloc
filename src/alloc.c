@@ -92,7 +92,9 @@ extern inline mi_decl_restrict void* mi_heap_malloc_small(mi_heap_t* heap, size_
 }
 
 extern inline mi_decl_restrict void* mi_malloc_small(size_t size) mi_attr_noexcept {
-  return mi_heap_malloc_small(mi_get_default_heap(), size);
+  void* p = mi_heap_malloc_small(mi_get_default_heap(), size);
+  _mi_malloc_callback(p, size);
+  return p;
 }
 
 // The main allocation function
@@ -116,7 +118,9 @@ extern inline mi_decl_restrict void* mi_heap_malloc(mi_heap_t* heap, size_t size
 }
 
 extern inline mi_decl_restrict void* mi_malloc(size_t size) mi_attr_noexcept {
-  return mi_heap_malloc(mi_get_default_heap(), size);
+  void* p = mi_heap_malloc(mi_get_default_heap(), size);
+  _mi_malloc_callback(p, size);
+  return p;
 }
 
 
@@ -485,6 +489,7 @@ static inline mi_segment_t* mi_checked_ptr_segment(const void* p, const char* ms
 // Free a block 
 void mi_free(void* p) mi_attr_noexcept
 {
+  _mi_free_callback(p);
   mi_segment_t* const segment = mi_checked_ptr_segment(p,"mi_free");
   if (mi_unlikely(segment == NULL)) return; 
 
@@ -609,7 +614,9 @@ extern inline mi_decl_restrict void* mi_heap_calloc(mi_heap_t* heap, size_t coun
 }
 
 mi_decl_restrict void* mi_calloc(size_t count, size_t size) mi_attr_noexcept {
-  return mi_heap_calloc(mi_get_default_heap(),count,size);
+  void* p = mi_heap_calloc(mi_get_default_heap(),count,size);
+  _mi_malloc_callback(p, count*size);
+  return p;
 }
 
 // Uninitialized `calloc`
@@ -620,7 +627,9 @@ extern mi_decl_restrict void* mi_heap_mallocn(mi_heap_t* heap, size_t count, siz
 }
 
 mi_decl_restrict void* mi_mallocn(size_t count, size_t size) mi_attr_noexcept {
-  return mi_heap_mallocn(mi_get_default_heap(),count,size);
+  void* p = mi_heap_mallocn(mi_get_default_heap(), count, size);
+  _mi_malloc_callback(p, count * size);
+  return p;
 }
 
 // Expand (or shrink) in place (or fail)
@@ -688,24 +697,49 @@ void* mi_heap_recalloc(mi_heap_t* heap, void* p, size_t count, size_t size) mi_a
 
 
 void* mi_realloc(void* p, size_t newsize) mi_attr_noexcept {
-  return mi_heap_realloc(mi_get_default_heap(),p,newsize);
+  void* np = mi_heap_realloc(mi_get_default_heap(),p,newsize);
+  if(np == p){
+    _mi_free_callback(p);
+  }
+  _mi_malloc_callback(np, newsize);
+  return np;
 }
 
 void* mi_reallocn(void* p, size_t count, size_t size) mi_attr_noexcept {
-  return mi_heap_reallocn(mi_get_default_heap(),p,count,size);
+  void* np = mi_heap_reallocn(mi_get_default_heap(),p,count,size);
+  if(np == p){
+    _mi_free_callback(p);
+  }
+  _mi_malloc_callback(np, count*size);
+  return np;
 }
 
 // Reallocate but free `p` on errors
 void* mi_reallocf(void* p, size_t newsize) mi_attr_noexcept {
-  return mi_heap_reallocf(mi_get_default_heap(),p,newsize);
+  void* np = mi_heap_reallocf(mi_get_default_heap(), p, newsize);
+  if (np == p) {
+    _mi_free_callback(p);
+  }
+  _mi_malloc_callback(np, newsize);
+  return np;
 }
 
 void* mi_rezalloc(void* p, size_t newsize) mi_attr_noexcept {
-  return mi_heap_rezalloc(mi_get_default_heap(), p, newsize);
+  void* np = mi_heap_rezalloc(mi_get_default_heap(), p, newsize);
+  if (np == p) {
+    _mi_free_callback(p);
+  }
+  _mi_malloc_callback(np, newsize);
+  return np;
 }
 
 void* mi_recalloc(void* p, size_t count, size_t size) mi_attr_noexcept {
-  return mi_heap_recalloc(mi_get_default_heap(), p, count, size);
+  void* np = mi_heap_recalloc(mi_get_default_heap(), p, count, size);
+  if (np == p) {
+    _mi_free_callback(p);
+  }
+  _mi_malloc_callback(np, count * size);
+  return np;
 }
 
 
@@ -724,7 +758,13 @@ mi_decl_restrict char* mi_heap_strdup(mi_heap_t* heap, const char* s) mi_attr_no
 }
 
 mi_decl_restrict char* mi_strdup(const char* s) mi_attr_noexcept {
-  return mi_heap_strdup(mi_get_default_heap(), s);
+  char* t = mi_heap_strdup(mi_get_default_heap(), s);
+  if (t)
+  {
+    const size_t n = strlen(s);
+    _mi_malloc_callback(t, n + 1);
+   }
+  return t;
 }
 
 // `strndup` using mi_malloc
@@ -741,7 +781,14 @@ mi_decl_restrict char* mi_heap_strndup(mi_heap_t* heap, const char* s, size_t n)
 }
 
 mi_decl_restrict char* mi_strndup(const char* s, size_t n) mi_attr_noexcept {
-  return mi_heap_strndup(mi_get_default_heap(),s,n);
+  char* t = mi_heap_strndup(mi_get_default_heap(), s, n);
+  if (t)
+  {
+    const char* end = (const char*)memchr(s, 0, n);  // find end of string in the first `n` characters (returns NULL if not found)
+    const size_t m = (end != NULL ? (size_t)(end - s) : n);  // `m` is the minimum of `n` or the end-of-string
+    _mi_malloc_callback(t, m + 1);
+  }
+  return t;
 }
 
 #ifndef __wasi__

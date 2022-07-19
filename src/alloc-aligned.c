@@ -141,29 +141,40 @@ mi_decl_restrict void* mi_heap_calloc_aligned(mi_heap_t* heap, size_t count, siz
 }
 
 mi_decl_restrict void* mi_malloc_aligned_at(size_t size, size_t alignment, size_t offset) mi_attr_noexcept {
-  return mi_heap_malloc_aligned_at(mi_get_default_heap(), size, alignment, offset);
+  void* p = mi_heap_malloc_aligned_at(mi_get_default_heap(), size, alignment, offset);
+  _mi_malloc_callback(p, size);
+  return p;
 }
 
 mi_decl_restrict void* mi_malloc_aligned(size_t size, size_t alignment) mi_attr_noexcept {
-  return mi_heap_malloc_aligned(mi_get_default_heap(), size, alignment);
+  void* p = mi_heap_malloc_aligned(mi_get_default_heap(), size, alignment);
+  _mi_malloc_callback(p, size);
+  return p;
 }
 
 mi_decl_restrict void* mi_zalloc_aligned_at(size_t size, size_t alignment, size_t offset) mi_attr_noexcept {
-  return mi_heap_zalloc_aligned_at(mi_get_default_heap(), size, alignment, offset);
+  void* p = mi_heap_zalloc_aligned_at(mi_get_default_heap(), size, alignment, offset);
+  _mi_malloc_callback(p, size);
+  return p;
 }
 
 mi_decl_restrict void* mi_zalloc_aligned(size_t size, size_t alignment) mi_attr_noexcept {
-  return mi_heap_zalloc_aligned(mi_get_default_heap(), size, alignment);
+  void* p = mi_heap_zalloc_aligned(mi_get_default_heap(), size, alignment);
+  _mi_malloc_callback(p, size);
+  return p;
 }
 
 mi_decl_restrict void* mi_calloc_aligned_at(size_t count, size_t size, size_t alignment, size_t offset) mi_attr_noexcept {
-  return mi_heap_calloc_aligned_at(mi_get_default_heap(), count, size, alignment, offset);
+  void* p = mi_heap_calloc_aligned_at(mi_get_default_heap(), count, size, alignment, offset);
+  _mi_malloc_callback(p, size);
+  return p; 
 }
 
 mi_decl_restrict void* mi_calloc_aligned(size_t count, size_t size, size_t alignment) mi_attr_noexcept {
-  return mi_heap_calloc_aligned(mi_get_default_heap(), count, size, alignment);
+  void* p = mi_heap_calloc_aligned(mi_get_default_heap(), count, size, alignment);
+  _mi_malloc_callback(p, size);
+  return p;
 }
-
 
 // ------------------------------------------------------
 // Aligned re-allocation
@@ -235,27 +246,57 @@ void* mi_heap_recalloc_aligned(mi_heap_t* heap, void* p, size_t newcount, size_t
   return mi_heap_rezalloc_aligned(heap, p, total, alignment);
 }
 
-void* mi_realloc_aligned_at(void* p, size_t newsize, size_t alignment, size_t offset) mi_attr_noexcept {
-  return mi_heap_realloc_aligned_at(mi_get_default_heap(), p, newsize, alignment, offset);
+oid* mi_realloc_aligned_at(void* p, size_t newsize, size_t alignment, size_t offset) mi_attr_noexcept {
+  void* np = mi_heap_realloc_aligned_at(mi_get_default_heap(), p, newsize, alignment, offset);
+  if (np == p) {
+     _mi_free_callback(p);
+  }
+  _mi_malloc_callback(np, newsize);
+  return np;
 }
 
 void* mi_realloc_aligned(void* p, size_t newsize, size_t alignment) mi_attr_noexcept {
-  return mi_heap_realloc_aligned(mi_get_default_heap(), p, newsize, alignment);
+  void* np = mi_heap_realloc_aligned(mi_get_default_heap(), p, newsize, alignment);
+  if (np == p) {
+    _mi_free_callback(p);
+  }
+  _mi_malloc_callback(np, newsize);
+  return np;
 }
 
 void* mi_rezalloc_aligned_at(void* p, size_t newsize, size_t alignment, size_t offset) mi_attr_noexcept {
-  return mi_heap_rezalloc_aligned_at(mi_get_default_heap(), p, newsize, alignment, offset);
+  void* np = mi_heap_rezalloc_aligned_at(mi_get_default_heap(), p, newsize, alignment, offset);
+  if (np == p) {
+    _mi_free_callback(p);
+  }
+  _mi_malloc_callback(np, newsize);
+  return np;
 }
 
 void* mi_rezalloc_aligned(void* p, size_t newsize, size_t alignment) mi_attr_noexcept {
-  return mi_heap_rezalloc_aligned(mi_get_default_heap(), p, newsize, alignment);
+  void* np = mi_heap_rezalloc_aligned(mi_get_default_heap(), p, newsize, alignment);
+  if (np == p) {
+    _mi_free_callback(p);
+  }
+  _mi_malloc_callback(np, newsize);
+  return np;
 }
 
 void* mi_recalloc_aligned_at(void* p, size_t newcount, size_t size, size_t alignment, size_t offset) mi_attr_noexcept {
-  return mi_heap_recalloc_aligned_at(mi_get_default_heap(), p, newcount, size, alignment, offset);
+  void* np = mi_heap_recalloc_aligned_at(mi_get_default_heap(), p, newcount, size, alignment, offset);
+  if (np == p) {
+    _mi_free_callback(p);
+  }
+  _mi_malloc_callback(np, size * newcount);
+  return np;
 }
 
 void* mi_recalloc_aligned(void* p, size_t newcount, size_t size, size_t alignment) mi_attr_noexcept {
-  return mi_heap_recalloc_aligned(mi_get_default_heap(), p, newcount, size, alignment);
+  void* np = mi_heap_recalloc_aligned(mi_get_default_heap(), p, newcount, size, alignment);
+  if (np == p) {
+    _mi_free_callback(p);
+  }
+  _mi_malloc_callback(np, size * newcount);
+  return np;
 }
 

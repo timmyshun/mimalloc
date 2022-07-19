@@ -145,6 +145,12 @@ mi_decl_export void mi_register_output(mi_output_fun* out, void* arg) mi_attr_no
 typedef void (mi_cdecl mi_error_fun)(int err, void* arg);
 mi_decl_export void mi_register_error(mi_error_fun* fun, void* arg);
 
+typedef void (mi_cdecl mi_malloc_callback_fun)(void* p, size_t);
+mi_decl_export void mi_register_malloc_callback(mi_malloc_callback_fun* malloc_callback) mi_attr_noexcept;
+
+typedef void (mi_cdecl mi_free_callback_fun)(void* p);
+mi_decl_export void mi_register_free_callback(mi_free_callback_fun* free_callback) mi_attr_noexcept;
+
 mi_decl_export void mi_collect(bool force)    mi_attr_noexcept;
 mi_decl_export int  mi_version(void)          mi_attr_noexcept;
 mi_decl_export void mi_stats_reset(void)      mi_attr_noexcept;
